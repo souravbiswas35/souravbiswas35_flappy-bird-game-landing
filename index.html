@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlappyBird Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sky: #4fc3f7;
+      --sky-dark: #0277bd;
+      --sun: #ffe082;
+      --green: #66bb6a;
+      --green-dark: #2e7d32;
+      --pipe: #388e3c;
+      --pipe-cap: #1b5e20;
+      --bird: #ffee58;
+      --bird-beak: #ff8f00;
+      --bird-eye: #fff;
+      --ground: #d4a95a;
+      --ground-dark: #a0703a;
+      --text-dark: #1a1a2e;
+      --white: #ffffff;
+      --shadow: rgba(0,0,0,0.18);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(180deg, #87d8f5 0%, #4fc3f7 40%, #b0e8ff 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Sky clouds */
+    .clouds {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 260px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .cloud {
+      position: absolute;
+      background: #fff;
+      border-radius: 50px;
+      opacity: 0.85;
+      animation: driftCloud linear infinite;
+    }
+    .cloud::before, .cloud::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .cloud1 { width: 120px; height: 38px; top: 32px; animation-duration: 28s; animation-delay: 0s; }
+    .cloud1::before { width: 60px; height: 60px; top: -28px; left: 18px; }
+    .cloud1::after { width: 44px; height: 44px; top: -18px; left: 55px; }
+    .cloud2 { width: 90px; height: 28px; top: 80px; animation-duration: 36s; animation-delay: -14s; opacity: 0.65; }
+    .cloud2::before { width: 42px; height: 42px; top: -20px; left: 12px; }
+    .cloud2::after { width: 34px; height: 34px; top: -12px; left: 38px; }
+    .cloud3 { width: 150px; height: 46px; top: 18px; animation-duration: 44s; animation-delay: -22s; }
+    .cloud3::before { width: 70px; height: 70px; top: -36px; left: 24px; }
+    .cloud3::after { width: 55px; height: 55px; top: -22px; left: 70px; }
+    @keyframes driftCloud {
+      from { transform: translateX(-200px); }
+      to { transform: translateX(110vw); }
+    }
+
+    /* Ground */
+    .ground {
+      position: fixed;
+      bottom: 0; left: 0; width: 100%; height: 60px;
+      background: linear-gradient(180deg, var(--ground) 0%, var(--ground-dark) 100%);
+      border-top: 5px solid #c49a3c;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .ground::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 200%; height: 14px;
+      background: repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 30px, transparent 30px, transparent 60px);
+      animation: groundScroll 4s linear infinite;
+    }
+    @keyframes groundScroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* Pipes decoration */
+    .pipe-left, .pipe-right {
+      position: fixed;
+      bottom: 60px;
+      width: 72px;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .pipe-left { left: 0; }
+    .pipe-right { right: 0; }
+    .pipe-body {
+      width: 72px;
+      background: linear-gradient(90deg, #81c784 0%, #388e3c 40%, #1b5e20 100%);
+      border-left: 4px solid #a5d6a7;
+      border-right: 4px solid #1b5e20;
+    }
+    .pipe-cap {
+      width: 88px;
+      height: 26px;
+      background: linear-gradient(90deg, #a5d6a7 0%, #2e7d32 50%, #1b5e20 100%);
+      border: 3px solid #1b5e20;
+      border-radius: 4px;
+      margin-left: -8px;
+    }
+    .pipe-left .pipe-body { height: 180px; }
+    .pipe-right .pipe-body { height: 220px; }
+
+    /* Main container */
+    .container {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px 100px;
+    }
+
+    /* Bird */
+    .bird-wrap {
+      animation: birdBob 1.2s ease-in-out infinite;
+      margin-bottom: 10px;
+    }
+    @keyframes birdBob {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50% { transform: translateY(-18px) rotate(8deg); }
+    }
+    .bird-svg { filter: drop-shadow(0 6px 18px rgba(0,0,0,0.22)); }
+
+    /* Title */
+    .title-block {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .title-main {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(3rem, 10vw, 6.5rem);
+      color: var(--white);
+      text-shadow:
+        0 4px 0 #ff8f00,
+        0 8px 0 rgba(0,0,0,0.2),
+        0 0 40px rgba(255,238,88,0.5);
+      letter-spacing: 2px;
+      line-height: 1;
+      animation: titlePop 0.6s cubic-bezier(.36,1.6,.4,1) both;
+    }
+    @keyframes titlePop {
+      from { opacity: 0; transform: scale(0.5) rotate(-6deg); }
+      to { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    .title-sub {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(1rem, 3vw, 1.6rem);
+      color: var(--sun);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      background: var(--sun);
+      color: #7c4700;
+      font-weight: 900;
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 16px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+
+    /* Card */
+    .card {
+      background: rgba(255,255,255,0.92);
+      border-radius: 28px;
+      padding: 36px 40px 32px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.16),
+        0 2px 0 rgba(255,255,255,0.8) inset;
+      animation: fadeUp 0.7s 0.5s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, #ffee58, #ff8f00, #66bb6a, #4fc3f7);
+      border-radius: 28px 28px 0 0;
+    }
+    .card-desc {
+      color: #4a5568;
+      font-size: 1.05rem;
+      line-height: 1.65;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .card-desc strong { color: var(--text-dark); }
+
+    /* Stats row */
+    .stats {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .stat {
+      flex: 1;
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8ff 100%);
+      border-radius: 14px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 2px solid #e0f0ea;
+    }
+    .stat-icon { font-size: 1.6rem; }
+    .stat-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-top: 2px; }
+    .stat-val { font-family: 'Boogaloo', cursive; font-size: 1.25rem; color: var(--text-dark); }
+
+    /* Download button */
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 18px 28px;
+      background: linear-gradient(135deg, #ff8f00 0%, #ff6f00 100%);
+      color: #fff;
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.45rem;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border-radius: 16px;
+      box-shadow:
+        0 6px 0 #c65000,
+        0 10px 30px rgba(255,111,0,0.35);
+      transition: transform 0.12s, box-shadow 0.12s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-download::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      animation: btnShine 2.5s 1.5s ease infinite;
+    }
+    @keyframes btnShine {
+      0% { left: -100%; }
+      60%, 100% { left: 160%; }
+    }
+    .btn-download:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 9px 0 #c65000, 0 16px 40px rgba(255,111,0,0.4);
+    }
+    .btn-download:active {
+      transform: translateY(2px);
+      box-shadow: 0 3px 0 #c65000, 0 6px 16px rgba(255,111,0,0.3);
+    }
+    .btn-icon { font-size: 1.6rem; }
+
+    /* Platform tag */
+    .platform-tag {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: #888;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .platform-tag span { font-weight: 700; color: #555; }
+
+    /* Coins decoration */
+    .coin {
+      position: fixed;
+      font-size: 1.6rem;
+      animation: coinFloat 6s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.18));
+    }
+    @keyframes coinFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+      50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card { padding: 28px 20px 24px; }
+      .stats { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Clouds -->
+  <div class="clouds">
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+  </div>
+
+  <!-- Pipe decorations -->
+  <div class="pipe-left">
+    <div class="pipe-cap"></div>
+    <div class="pipe-body"></div>
+  </div>
+  <div class="pipe-right">
+    <div class="pipe-cap"></div>
+    <div class="pipe-body"></div>
+  </div>
+
+  <!-- Floating coins -->
+  <div class="coin" style="left:8%;top:22%;animation-delay:0s;">🪙</div>
+  <div class="coin" style="left:88%;top:18%;animation-delay:1.2s;">🪙</div>
+  <div class="coin" style="left:75%;top:55%;animation-delay:2.5s;">⭐</div>
+  <div class="coin" style="left:14%;top:65%;animation-delay:3.8s;">⭐</div>
+
+  <!-- Ground -->
+  <div class="ground"></div>
+
+  <!-- Main content -->
+  <div class="container">
+
+    <!-- Animated bird -->
+    <div class="bird-wrap">
+      <svg class="bird-svg" width="110" height="90" viewBox="0 0 110 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <ellipse cx="55" cy="52" rx="38" ry="30" fill="#ffee58"/>
+        <ellipse cx="55" cy="52" rx="38" ry="30" fill="url(#bgrad)"/>
+        <!-- Wing -->
+        <ellipse cx="35" cy="58" rx="18" ry="10" fill="#fdd835" transform="rotate(-20 35 58)"/>
+        <!-- Belly -->
+        <ellipse cx="62" cy="60" rx="18" ry="14" fill="#fff9c4"/>
+        <!-- Eye white -->
+        <circle cx="70" cy="44" r="12" fill="white"/>
+        <!-- Eye pupil -->
+        <circle cx="73" cy="44" r="7" fill="#1a1a2e"/>
+        <circle cx="76" cy="41" r="2.5" fill="white"/>
+        <!-- Beak -->
+        <path d="M85 50 L103 46 L103 55 Z" fill="#ff8f00"/>
+        <path d="M85 50 L103 50 L103 55 Z" fill="#e65100"/>
+        <!-- Cheek blush -->
+        <ellipse cx="77" cy="52" rx="7" ry="4" fill="#ffccbc" opacity="0.7"/>
+        <defs>
+          <radialGradient id="bgrad" cx="45%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#fff176"/>
+            <stop offset="100%" stop-color="#f9a825"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <div class="title-block">
+      <div class="badge">✦ v1.0 Release ✦</div>
+      <h1 class="title-main">FlappyBird Game</h1>
+      <p class="title-sub">SFML • C++ • Windows</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+      <p class="card-desc">
+        A <strong>polished Flappy Bird clone</strong> built with C++ & SFML.<br>
+        Dodge the pipes, beat your high score, and feel the satisfying crunch of every tap.
+      </p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-val">60 FPS</div>
+          <div class="stat-label">Smooth</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">🎵</div>
+          <div class="stat-val">SFX</div>
+          <div class="stat-label">Audio</div>
+        </div>
+        <div class="stat">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-val">HiScore</div>
+          <div class="stat-label">Saved</div>
+        </div>
+      </div>
+
+      <a class="btn-download"
+         href="https://github.com/souravbiswas35/Flappy-Bird-Game/releases/download/v1.0/FlappyBird.zip"
+         target="_blank">
+        <span class="btn-icon">⬇️</span>
+        Download Free
+      </a>
+
+      <div class="platform-tag">
+        🪟 <span>Windows</span> · .zip · No install needed
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
